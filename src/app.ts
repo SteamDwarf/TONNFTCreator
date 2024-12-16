@@ -1,41 +1,49 @@
 import * as dotenv from 'dotenv';
 import { openWallet } from './utils';
-import { updateMetadataFiles, uploadFolderToIPFS } from './metadata';
-import path from 'path';
-import { CollectionData, NftCollecion } from './contracts/NFTCollection';
 import { waitSeqno } from './delay';
+import { NftCollection, NftItem } from './wrappers';
 
 dotenv.config();
 
 const init = async () => {
-    const metadataFolder = path.join(__dirname, '../', 'data/metadata');
-    const imagesFolder = path.join(__dirname, '../', 'data/images');
-
     const wallet = await openWallet(process.env.MNEMONIC!.split(' '), true);
 
-    console.log('Uploading images to pinata...');
-    const imagesIpfsHash = await uploadFolderToIPFS(imagesFolder);
-    console.log('Images Successfully uploaded!');
+    const metadataBaseUrl = 'https://steamdwarf.github.io/TonVillageClickerAssets/nft/metadata/';
 
-    console.log('Uploading metadata to pinata...');
-    await updateMetadataFiles(metadataFolder, imagesIpfsHash);
-    const metadataIpfsHash = await uploadFolderToIPFS(metadataFolder);
-    console.log('Metadata Successfully uploaded!');
+    const collectionMetadataUrl = `${metadataBaseUrl}collection.json`;
+    const collection = new NftCollection(collectionMetadataUrl);
 
-    console.log('Start deploy nft collection...');
-    const collectionData: CollectionData = {
-        ownerAddress: wallet.wallet.address,
-        royaltyPercent: 0.5,
-        royaltyAddress: wallet.wallet.address,
-        nextItemIndex: 0,
-        collectionContentUrl: `ipfs://${metadataIpfsHash}/collection.json`,
-        commonContentUrl: `ipfs://${metadataIpfsHash}`
-    }
-    const collection = new NftCollecion(collectionData);
+    console.log('Deploy collection...');
     let seqno = await collection.deploy(wallet);
-
-    console.log(`Collection has deployed: ${collection.address}`);
     await waitSeqno(seqno, wallet);
+    console.log(`Collection has deployed: ${collection.address}`);
+
+    const nftsData = [
+        {
+            link: `${metadataBaseUrl}0.json`,
+            index: 0
+        },
+        {
+            link: `${metadataBaseUrl}1.json`,
+            index: 1
+        },
+        {
+            link: `${metadataBaseUrl}2.json`,
+            index: 2
+        },
+    ];
+
+    for(let i = 0; i < nftsData.length; i++) {
+        const nft = new NftItem(nftsData[i].index, nftsData[i].link);
+
+        console.log(`Deploy nft ${nftsData[i].link}`);
+        let seqno = await collection.mintNft(wallet, nft, wallet.wallet.address);
+        await waitSeqno(seqno, wallet);
+        console.log(`Nft has deployed!`);
+    }
+
 }
+
+
 
 init();

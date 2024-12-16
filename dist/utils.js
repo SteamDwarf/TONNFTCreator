@@ -9,18 +9,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.encodeOffChainContent = exports.makeSnakeCell = exports.bufferToChunk = exports.sleep = exports.openWallet = void 0;
+exports.createOffChainContent = exports.makeSnakeCell = exports.bufferToChunk = exports.sleep = exports.openWallet = exports.getClient = void 0;
 const crypto_1 = require("@ton/crypto");
 const ton_1 = require("@ton/ton");
-const openWallet = (mnemonic, testnet) => __awaiter(void 0, void 0, void 0, function* () {
-    const keyPair = yield (0, crypto_1.mnemonicToPrivateKey)(mnemonic);
+const getClient = (testnet) => {
     const tonCenterBaseEndpoint = testnet
         ? 'https://testnet.toncenter.com'
         : 'https://toncenter.com';
-    const client = new ton_1.TonClient({
+    return new ton_1.TonClient({
         endpoint: `${tonCenterBaseEndpoint}/api/v2/jsonRPC`,
         apiKey: process.env.TONCENTER_API_KEY
     });
+};
+exports.getClient = getClient;
+const openWallet = (mnemonic, testnet) => __awaiter(void 0, void 0, void 0, function* () {
+    const keyPair = yield (0, crypto_1.mnemonicToPrivateKey)(mnemonic);
+    const client = (0, exports.getClient)(testnet);
     const wallet = ton_1.WalletContractV4.create({
         workchain: 0,
         publicKey: keyPair.publicKey
@@ -61,11 +65,13 @@ const makeSnakeCell = (data) => {
     return curCell.endCell();
 };
 exports.makeSnakeCell = makeSnakeCell;
-const encodeOffChainContent = (content) => {
-    let data = Buffer.from(content);
+const createOffChainContent = (content) => {
+    return (0, ton_1.beginCell)().storeUint(1, 8).storeStringTail(content).endCell();
+    /* let data = Buffer.from(content);
     const offChainPreffix = Buffer.from([0x01]);
+
     data = Buffer.concat([offChainPreffix, data]);
-    return (0, exports.makeSnakeCell)(data);
+    return makeSnakeCell(data); */
 };
-exports.encodeOffChainContent = encodeOffChainContent;
+exports.createOffChainContent = createOffChainContent;
 //# sourceMappingURL=utils.js.map

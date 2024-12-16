@@ -1,0 +1,149 @@
+#pragma version =0.4.4;
+#pragma allow-post-modification;
+#pragma compute-asm-ltr;
+
+#include "tact_NftCollection.headers.fc";
+#include "tact_NftCollection.stdlib.fc";
+#include "tact_NftCollection.storage.fc";
+
+;;
+;; Contract NftCollection functions
+;;
+
+(slice, int, cell) $NftCollection$_contract_init(slice $owner, cell $content) impure inline_ref {
+    var (($self'owner_address, $self'next_item_index, $self'collection_content)) = (null(), null(), null());
+    $self'next_item_index = 0;
+    $self'owner_address = $owner;
+    $self'collection_content = $content;
+    return ($self'owner_address, $self'next_item_index, $self'collection_content);
+}
+
+((slice, int, cell), (int, cell, slice)) $NftCollection$_fun_get_collection_data((slice, int, cell) $self) impure inline_ref {
+    var (($self'owner_address, $self'next_item_index, $self'collection_content)) = $self;
+    var $fresh$ret_5 = $CollectionData$_constructor_next_item_index_collection_content_owner_address($self'next_item_index, $self'collection_content, $self'owner_address);
+    return (($self'owner_address, $self'next_item_index, $self'collection_content), $fresh$ret_5);
+}
+
+((slice, int, cell), slice) $NftCollection$_fun_get_nft_address_by_index((slice, int, cell) $self, int $index) impure inline_ref {
+    var (($self'owner_address, $self'next_item_index, $self'collection_content)) = $self;
+    var ($initState'code, $initState'data) = $NftItem$_init_child(__tact_context_sys, $index, $global_myAddress());
+    var $fresh$ret_6 = $global_contractAddress(($initState'code, $initState'data));
+    return (($self'owner_address, $self'next_item_index, $self'collection_content), $fresh$ret_6);
+}
+
+((slice, int, cell), cell) $NftCollection$_fun_get_nft_content((slice, int, cell) $self, int $index, cell $individual_content) impure inline_ref {
+    var (($self'owner_address, $self'next_item_index, $self'collection_content)) = $self;
+    var $fresh$ret_7 = $individual_content;
+    return (($self'owner_address, $self'next_item_index, $self'collection_content), $fresh$ret_7);
+}
+
+;;
+;; Receivers of a Contract NftCollection
+;;
+
+(((slice, int, cell)), ()) $NftCollection$_internal_binary_NftDeploy((slice, int, cell) $self, (int, int, slice, cell, slice) $msg) impure inline {
+    var ($self'owner_address, $self'next_item_index, $self'collection_content) = $self;
+    var ($msg'query_id, $msg'index, $msg'owner, $msg'content, $msg'response_address) = $msg;
+    throw_unless(29170, ( __tact_slice_eq_bits($self'owner_address, __tact_context_get_sender()) ));
+    throw_unless(1173, ($msg'index <= $self'next_item_index));
+    var ($initState'code, $initState'data) = $NftItem$_init_child(__tact_context_sys, $msg'index, $global_myAddress());
+    slice $nftAddress = $global_contractAddress(($initState'code, $initState'data));
+    $global_send($SendParameters$_constructor_to_value_mode_data_code_body($nftAddress, 0, 66, $initState'data, $initState'code, $NftDeploy$_store_cell(($msg'query_id, $msg'index, $msg'owner, $msg'content, $msg'response_address))));
+    if (($msg'index == $self'next_item_index)) {
+        $self'next_item_index = $self'next_item_index + 1;
+    }
+    return (($self'owner_address, $self'next_item_index, $self'collection_content), ());
+}
+
+(((slice, int, cell)), ()) $NftCollection$_internal_binary_Deploy((slice, int, cell) $self, (int) $deploy) impure inline {
+    var ($self'owner_address, $self'next_item_index, $self'collection_content) = $self;
+    var ($deploy'queryId) = $deploy;
+    ($self'owner_address, $self'next_item_index, $self'collection_content)~$NftCollection$_fun_notify($DeployOk$_store_cell($DeployOk$_constructor_queryId($deploy'queryId)));
+    return (($self'owner_address, $self'next_item_index, $self'collection_content), ());
+}
+
+;;
+;; Get methods of a Contract NftCollection
+;;
+
+_ %get_collection_data() method_id(102491) {
+    var self = $NftCollection$_contract_load();
+    var res = self~$NftCollection$_fun_get_collection_data();
+    return $CollectionData$_to_external(res);
+}
+
+_ %get_nft_address_by_index(int $index) method_id(92067) {
+    int $index = $index;
+    var self = $NftCollection$_contract_load();
+    var res = self~$NftCollection$_fun_get_nft_address_by_index($index);
+    return res;
+}
+
+_ %get_nft_content(int $index, cell $individual_content) method_id(68445) {
+    int $index = $index;
+    cell $individual_content = $individual_content;
+    var self = $NftCollection$_contract_load();
+    var res = self~$NftCollection$_fun_get_nft_content($index, $individual_content);
+    return res;
+}
+
+_ lazy_deployment_completed() method_id {
+    return get_data().begin_parse().load_int(1);
+}
+
+;;
+;; Routing of a Contract NftCollection
+;;
+
+((slice, int, cell), int) $NftCollection$_contract_router_internal((slice, int, cell) self, int msg_bounced, slice in_msg) impure inline_ref {
+    ;; Handle bounced messages
+    if (msg_bounced) {
+        return (self, true);
+    }
+    
+    ;; Parse incoming message
+    int op = 0;
+    if (slice_bits(in_msg) >= 32) {
+        op = in_msg.preload_uint(32);
+    }
+    
+    
+    ;; Receive NftDeploy message
+    if (op == 2172188206) {
+        var msg = in_msg~$NftDeploy$_load();
+        self~$NftCollection$_internal_binary_NftDeploy(msg);
+        return (self, true);
+    }
+    
+    ;; Receive Deploy message
+    if (op == 2490013878) {
+        var msg = in_msg~$Deploy$_load();
+        self~$NftCollection$_internal_binary_Deploy(msg);
+        return (self, true);
+    }
+    
+    return (self, false);
+}
+
+() recv_internal(int msg_value, cell in_msg_cell, slice in_msg) impure {
+    
+    ;; Context
+    var cs = in_msg_cell.begin_parse();
+    var msg_flags = cs~load_uint(4);
+    var msg_bounced = -(msg_flags & 1);
+    slice msg_sender_addr = __tact_verify_address(cs~load_msg_addr());
+    __tact_context = (msg_bounced, msg_sender_addr, msg_value, cs);
+    __tact_context_sender = msg_sender_addr;
+    
+    ;; Load contract data
+    var self = $NftCollection$_contract_load();
+    
+    ;; Handle operation
+    int handled = self~$NftCollection$_contract_router_internal(msg_bounced, in_msg);
+    
+    ;; Throw if not handled
+    throw_unless(130, handled);
+    
+    ;; Persist state
+    $NftCollection$_contract_store(self);
+}

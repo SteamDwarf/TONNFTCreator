@@ -41,41 +41,42 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv = __importStar(require("dotenv"));
 const utils_1 = require("./utils");
-const metadata_1 = require("./metadata");
-const path_1 = __importDefault(require("path"));
-const NFTCollection_1 = require("./contracts/NFTCollection");
 const delay_1 = require("./delay");
+const wrappers_1 = require("./wrappers");
 dotenv.config();
 const init = () => __awaiter(void 0, void 0, void 0, function* () {
-    const metadataFolder = path_1.default.join(__dirname, '../', 'data/metadata');
-    const imagesFolder = path_1.default.join(__dirname, '../', 'data/images');
     const wallet = yield (0, utils_1.openWallet)(process.env.MNEMONIC.split(' '), true);
-    console.log('Uploading images to pinata...');
-    const imagesIpfsHash = yield (0, metadata_1.uploadFolderToIPFS)(imagesFolder);
-    console.log('Images Successfully uploaded!');
-    console.log('Uploading metadata to pinata...');
-    yield (0, metadata_1.updateMetadataFiles)(metadataFolder, imagesIpfsHash);
-    const metadataIpfsHash = yield (0, metadata_1.uploadFolderToIPFS)(metadataFolder);
-    console.log('Metadata Successfully uploaded!');
-    console.log('Start deploy nft collection...');
-    const collectionData = {
-        ownerAddress: wallet.wallet.address,
-        royaltyPercent: 0.5,
-        royaltyAddress: wallet.wallet.address,
-        nextItemIndex: 0,
-        collectionContentUrl: `ipfs://${metadataIpfsHash}/collection.json`,
-        commonContentUrl: `ipfs://${metadataIpfsHash}`
-    };
-    const collection = new NFTCollection_1.NftCollecion(collectionData);
+    const metadataBaseUrl = 'https://steamdwarf.github.io/TonVillageClickerAssets/nft/metadata/';
+    const collectionMetadataUrl = `${metadataBaseUrl}collection.json`;
+    const collection = new wrappers_1.NftCollection(collectionMetadataUrl);
+    console.log('Deploy collection...');
     let seqno = yield collection.deploy(wallet);
-    console.log(`Collection has deployed: ${collection.address}`);
     yield (0, delay_1.waitSeqno)(seqno, wallet);
+    console.log(`Collection has deployed: ${collection.address}`);
+    const nftsData = [
+        {
+            link: `${metadataBaseUrl}0.json`,
+            index: 0
+        },
+        {
+            link: `${metadataBaseUrl}1.json`,
+            index: 1
+        },
+        {
+            link: `${metadataBaseUrl}2.json`,
+            index: 2
+        },
+    ];
+    for (let i = 0; i < nftsData.length; i++) {
+        const nft = new wrappers_1.NftItem(nftsData[i].index, nftsData[i].link);
+        console.log(`Deploy nft ${nftsData[i].link}`);
+        let seqno = yield collection.mintNft(wallet, nft, wallet.wallet.address);
+        yield (0, delay_1.waitSeqno)(seqno, wallet);
+        console.log(`Nft has deployed!`);
+    }
 });
 init();
 //# sourceMappingURL=app.js.map

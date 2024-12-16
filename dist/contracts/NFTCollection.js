@@ -88,6 +88,37 @@ class NftCollecion {
             return seqno;
         });
     }
+    createMintBody(params) {
+        const body = (0, core_1.beginCell)();
+        body.storeUint(1, 32);
+        body.storeUint(params.queryId || 0, 64);
+        body.storeUint(params.itemIndex, 64);
+        body.storeCoins(params.amount);
+        const nftItemContent = (0, core_1.beginCell)();
+        nftItemContent.storeAddress(params.itemOwnerAddress);
+        const uriContent = (0, core_1.beginCell)();
+        uriContent.storeBuffer(Buffer.from(params.commonContentUrl));
+        nftItemContent.storeRef(uriContent.endCell());
+        body.storeRef(nftItemContent.endCell());
+        return body.endCell();
+        /* const body = beginCell();
+
+        body.storeUint(1, 32);
+        body.storeUint(params.queryId || 0, 64);
+        body.storeUint(params.itemIndex, 64);
+        body.storeCoins(params.amount);
+
+        const nftItemContent = beginCell();
+        nftItemContent.storeAddress(params.itemOwnerAddress);
+
+        const urlContent = beginCell();
+        urlContent.storeBuffer(Buffer.from(params.commonContentUrl));
+        nftItemContent.storeRef(urlContent.endCell());
+
+        body.storeRef(nftItemContent.endCell());
+
+        return body.endCell(); */
+    }
 }
 exports.NftCollecion = NftCollecion;
 //# sourceMappingURL=NFTCollection.js.map

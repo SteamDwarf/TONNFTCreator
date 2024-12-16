@@ -6,17 +6,21 @@ export interface OpenedWallet {
     wallet: OpenedContract<WalletContractV4>;
 }
 
-export const openWallet = async (mnemonic: string[], testnet: boolean): Promise<OpenedWallet> => {
-    const keyPair = await mnemonicToPrivateKey(mnemonic);
-
+export const getClient = (testnet: boolean) => {
     const tonCenterBaseEndpoint = testnet
         ? 'https://testnet.toncenter.com'
         : 'https://toncenter.com';
 
-    const client = new TonClient({
+    return new TonClient({
         endpoint: `${tonCenterBaseEndpoint}/api/v2/jsonRPC`,
         apiKey: process.env.TONCENTER_API_KEY
     })
+
+}
+
+export const openWallet = async (mnemonic: string[], testnet: boolean): Promise<OpenedWallet> => {
+    const keyPair = await mnemonicToPrivateKey(mnemonic);
+    const client = getClient(testnet);
 
     const wallet = WalletContractV4.create({
         workchain: 0,
@@ -63,14 +67,10 @@ export const makeSnakeCell = (data: Buffer): Cell => {
             curCell = nextCell;
         }
     }
-    
+
     return curCell.endCell();
 }
 
-export const encodeOffChainContent = (content: string) => {
-    let data = Buffer.from(content);
-    const offChainPreffix = Buffer.from([0x01]);
-
-    data = Buffer.concat([offChainPreffix, data]);
-    return makeSnakeCell(data);
+export const createOffChainContent = (content: string) => {
+    return beginCell().storeUint(1, 8).storeStringTail(content).endCell();
 }
